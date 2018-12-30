@@ -327,7 +327,7 @@ function InitSheet()
 	save.Shade		= "B"
 	save.Skill		= 0
 	save.BoonD		= 11
-	save.Planet		= nil
+	save.Planet		= { w = nil, h = nil, f = nil, s = nil}
 	save.Moon		= ''
 	save.Awake		= false
 	save.Rung		= ""
@@ -504,10 +504,10 @@ function saveToFile()
 		"\tSkill = " , save.Skill , ",\n" ,
 		"\tBoonD = " , save.BoonD , ",\n" ,
 		"\tPlanet = { \n" ,
-		"\t\tw = " , save.Planet.w , ",\n" ,
-		"\t\th = " , save.Planet.h , ",\n" ,
-		"\t\tf = \"" , save.Planet.f , "\",\n" ,
-		"\t\ts = [[" , save.Planet.s , "]]\n" ,
+		"\t\tw = " , tostring( save.Planet.w ) , ",\n" ,
+		"\t\th = " , tostring( save.Planet.h ) , ",\n" ,
+		"\t\tf = \"" , tostring( save.Planet.f ) , "\",\n" ,
+		"\t\ts = [[" , tostring( save.Planet.s ) , "]]\n" ,
 		"\t},\n" ,
 		"\tMoon = \"" , save.Moon , "\",\n" ,
 		"\tAwake = " , tostring( save.Awake ) , ",\n" ,
