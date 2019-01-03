@@ -35,6 +35,7 @@ function love.load()
 	planetImage = nil
 	focus = nil
 	fbefore = nil
+	fsi = 1
 	
 	--temporary starts sheet as new on startup
 	InitSheet()
@@ -198,6 +199,7 @@ function love.mousepressed(x,y,button,istouch)
 				end			
 				focus = shape
 				fbefore = save[shape.vali]
+				fsi = #save[shape.vali]
 			end
 			break
 		end
@@ -207,21 +209,23 @@ end
 
 function love.textinput(t)
 	if focus then
-		save[focus.vali] = save[focus.vali] .. t
+		save[focus.vali] = string.sub(save[focus.vali], 1, fsi) .. t .. string.sub(save[focus.vali], fsi + 1, -1)
+		fsi = fsi + 1
 	end
 end
 
 function love.keypressed( key )
 	if key == "backspace" and focus then
         -- get the byte offset to the last UTF-8 character in the string.
-        local byteoffset = utf8.offset(save[focus.vali], -1)
+        local byteoffset = utf8.offset(save[focus.vali], fsi)
  
         if byteoffset then
             -- remove the last UTF-8 character.
             -- string.sub operates on bytes rather than UTF-8 characters, so we couldn't do string.sub(text, 1, -2).
-            save[focus.vali] = string.sub(save[focus.vali], 1, byteoffset - 1)
+            save[focus.vali] = string.sub(save[focus.vali], 1, byteoffset - 1) .. string.sub(save[focus.vali], byteoffset + 1, -1)
+			fsi = fsi - 1
         end
-    elseif key == "return" and focus then
+    elseif ( key == "return" or key == "kpenter" ) and focus then
 		if focus.vali == "Vitmax" or focus.vali == "Vitcur"
 		or focus.vali == "HRank"  or focus.vali == "Skill"
 		or focus.vali == "BoonD" then
@@ -238,13 +242,24 @@ function love.keypressed( key )
 	elseif key == "escape" and focus then
 		save[focus.vali] = fbefore
 		focus = nil
+	elseif key == "right" and focus then
+		if fsi + 1 <= #save[focus.vali] then
+			fsi = fsi + 1
+		end
+	elseif key == "left" and focus then
+		if fsi - 1 >= 1 then
+			fsi = fsi - 1
+		end
 	end
-	
 end
 
 function love.filedropped( file )
 	if string.sub( file:getFilename(), -7, -1 ) == ".sburpg" then
 		dofile( file:getFilename() )
+		if not save.Rungs then
+			save.Rungs = {}
+		end
+		
 		if save.Awake then
 			Fields.Awake.title = 'y'
 		else
@@ -262,21 +277,9 @@ function love.filedropped( file )
 			Fields.Awake:recolor( standardColors )
 		end
 		
-		if save.Planet.s then
-			--[[
-			local fileData =  love.filesystem.newFileData( save.Planet.s, save.Planet.n )
-			print( fileData:getExtension(), fileData:getFilename( fileData) )
-			ok, em = love.filesystem.write(save.Planet.n, fileData, fileData:getSize())
-			if not ok then
-				print( em )
-			end
-			--local planetImageData = love.image.newCompressedData( fileData )
-			--planetImage = love.graphics.newImage( planetImageData )
-			--]]
+		if save.Planet and save.Planet.s then
 			local planetImageData = love.image.newImageData( save.Planet.w, save.Planet.h, save.Planet.f, save.Planet.s)
-			planetImage = love.graphics.newImage( planetImageData )
-			
-			
+			planetImage = love.graphics.newImage( planetImageData )	
 		end
 		
 	elseif string.sub( file:getFilename(), -4, -1 ) == ".png" then
@@ -295,10 +298,6 @@ function love.filedropped( file )
 		planetImage = love.graphics.newImage( planetImageData )
 		
 		save.Planet = { w = planetImageData:getWidth(), h = planetImageData:getHeight(), f = planetImageData:getFormat(), s = planetImageData:getString() }
-		--[[
-		local fileData = planetImageData:encode("png", "planetImage.png")
-		save.Planet = { n = fileData:getFilename(), s = fileData:getString() }
-		--]]
 	end
 end
 
@@ -337,6 +336,8 @@ function InitSheet()
 	save.Captcha3	= ""
 	save.Captcha4	= ""
 	save.Captcha5	= ""
+	save.Rungs		= {}
+	
 end
 
 function makePentField( x, y, d)
@@ -475,61 +476,74 @@ local c = nil
 end
 
 function saveToFile()
+	if save.Rung and not ( save.Rung == "" ) then
+		if not save.Rungs then
+			save.Rungs = {}
+		end
+		save.Rungs[save.Exp] = save.Rung
+	end
 	local path = love.filesystem.getSourceBaseDirectory( )
-	local f = assert( io.open( path .. "/" .. save.Placronym .. ".sburpg", "w" ) )
+	local f = assert( io.open( path .. "/" .. string.gsub( save.Placronym, "[/\\%?%%%*:|\"<>%.]+", "_" ) .. ".sburpg", "w" ) )
 	f:write(
 		"save = {}\n",
 		"save = { \n",
-		"\tPlacronym = \"" , save.Placronym , "\",\n",
-		"\tFeel = \"" , save.Feel , "\",\n",
-		"\tQuest = \"" , save.Quest , "\",\n",
-		"\tClass = \"" , save.Class , "\",\n",
-		"\tAspect = \"" , save.Aspect , "\",\n" ,
-		"\tMake = \"" , save.Make , "\",\n" ,
-		"\tKnow = \"" , save.Know , "\",\n" ,
-		"\tUse = \"" , save.Use , "\",\n" ,
-		"\tBe = \"" , save.Be , "\",\n" ,
-		"\tTake = \"" , save.Take , "\",\n" ,
-		"\tShift = \"" , save.Shift , "\",\n" ,
-		"\tMar = \"" , save.Mar , "\",\n" ,
-		"\tBond1 = \"" , save.Bond1 , "\",\n" ,
-		"\tBond2 = \"" , save.Bond2 , "\",\n" ,
-		"\tBond3 = \"" , save.Bond3 , "\",\n" ,
-		"\tKind = \"" , save.Kind , "\",\n" ,
+		"\tPlacronym = [[" , string.gsub( save.Placronym, "]", "" ) , "]],\n",
+		"\tFeel = [[" , string.gsub( save.Feel, "]", "" ) , "]],\n",
+		"\tQuest = [[" , string.gsub( save.Quest, "]", "" ) , "]],\n",
+		"\tClass = [[" , string.gsub( save.Class, "]", "" ) , "]],\n",
+		"\tAspect = [[" , string.gsub( save.Aspect, "]", "" ) , "]],\n" ,
+		"\tMake = [[" , string.gsub( save.Make, "]", "" ) , "]],\n" ,
+		"\tKnow = [[" , string.gsub( save.Know, "]", "" ) , "]],\n" ,
+		"\tUse = [[" , string.gsub( save.Use, "]", "" ) , "]],\n" ,
+		"\tBe = [[" , string.gsub( save.Be, "]", "" ) , "]],\n" ,
+		"\tTake = [[" , string.gsub( save.Take, "]", "" ) , "]],\n" ,
+		"\tShift = [[" , string.gsub( save.Shift, "]", "" ) , "]],\n" ,
+		"\tMar = [[" , string.gsub( save.Mar, "]", "" ) , "]],\n" ,
+		"\tBond1 = [[" , string.gsub( save.Bond1, "]", "" ) , "]],\n" ,
+		"\tBond2 = [[" , string.gsub( save.Bond2, "]", "" ) , "]],\n" ,
+		"\tBond3 = [[" , string.gsub( save.Bond3, "]", "" ) , "]],\n" ,
+		"\tKind = [[" , string.gsub( save.Kind, "]", "" ) , "]],\n" ,
 		"\tVitmax = " , save.Vitmax , ",\n" ,
 		"\tVitcur = " , save.Vitcur , ",\n" ,
-		"\tHClass = \"" , save.HClass , "\",\n" ,
+		"\tHClass = [[" , string.gsub( save.HClass, "]", "" ) , "]],\n" ,
 		"\tHRank = " , save.HRank , ",\n" ,
-		"\tShade = \"" , save.Shade , "\",\n" ,
+		"\tShade = [[" , string.gsub( save.Shade, "]", "" ) , "]],\n" ,
 		"\tSkill = " , save.Skill , ",\n" ,
-		"\tBoonD = " , save.BoonD , ",\n" ,
-		"\tPlanet = { \n" ,
-		"\t\tw = " , tostring( save.Planet.w ) , ",\n" ,
-		"\t\th = " , tostring( save.Planet.h ) , ",\n" ,
-		"\t\tf = \"" , tostring( save.Planet.f ) , "\",\n" ,
-		"\t\ts = [[" , tostring( save.Planet.s ) , "]]\n" ,
-		"\t},\n" ,
-		"\tMoon = \"" , save.Moon , "\",\n" ,
+		"\tBoonD = " , save.BoonD , ",\n"
+	)
+	if save.Planet then
+		f:write(
+			"\tPlanet = { \n" ,
+			"\t\tw = " , tostring( save.Planet.w ) , ",\n" ,
+			"\t\th = " , tostring( save.Planet.h ) , ",\n" ,
+			"\t\tf = [[" , string.gsub( tostring( save.Planet.f ), "]", "" ) , "]],\n" ,
+			"\t\ts = [[" , string.gsub( tostring( save.Planet.s ), "]]", "\93\94" ) , "]]\n" ,
+			"\t},\n"
+		)
+	end
+	f:write(
+		"\tMoon = [[" , string.gsub( save.Moon, "]", "" ) , "]],\n" ,
 		"\tAwake = " , tostring( save.Awake ) , ",\n" ,
-		"\tRung = \"" , save.Rung , "\",\n" ,
+		"\tRung = [[" , string.gsub( save.Rung, "]", "" ) , "]],\n" ,
 		"\tExp = " , save.Exp , ",\n" ,
-		"\tCaptcha1 = \"" , save.Captcha1 , "\",\n" ,
-		"\tCaptcha2 = \"" , save.Captcha2 , "\",\n" ,
-		"\tCaptcha3 = \"" , save.Captcha3 , "\",\n" ,
-		"\tCaptcha4 = \"" , save.Captcha4 , "\",\n" ,
-		"\tCaptcha5 = \"" , save.Captcha5 , "\"\n" ,
+		"\tCaptcha1 = [[" , string.gsub( save.Captcha1, "]", "" ) , "]],\n" ,
+		"\tCaptcha2 = [[" , string.gsub( save.Captcha2, "]", "" ) , "]],\n" ,
+		"\tCaptcha3 = [[" , string.gsub( save.Captcha3, "]", "" ) , "]],\n" ,
+		"\tCaptcha4 = [[" , string.gsub( save.Captcha4, "]", "" ) , "]],\n" ,
+		"\tCaptcha5 = [[" , string.gsub( save.Captcha5, "]", "" ) , "]]\n"
+	)
+	if save.Rungs then
+		f:write( "\tRungs = { \n" )
+		for i,s in pairs(save.Rungs) do
+			f:write( "\t\t" , i , " = [[" , string.gsub( s, "]", "" ), "]]\n")
+		end
+		f:write( "\t}\n" )
+	end
+	f:write(
 		"}"
 	)
 	f:close()
 end
-
---[[
-"\tPlanet = { \n" ,
-		"\t\tn = \"" , save.Planet.n , "\",\n" ,
-		"\t\ts = [" , save.Planet.s , "]\n" ,
-		"\t},\n" ,
---]]
-
 
 function awakePress()
 	save.Awake = not save.Awake
@@ -547,6 +561,11 @@ function expUpPress()
 		save.Vitmax = save.Vitmax + 4
 		save.Vitcur = save.Vitcur + 4
 		save.Skill = save.Skill + 1
+	end
+	save.Rungs[save.Exp - 1] = save.Rung
+	if pcall( function () return save.Rungs[save.Exp] end ) and save.Rungs[save.Exp] then
+		save.Rung = save.Rungs[save.Exp]
+	else
 		save.Rung = ""
 	end
 	save.BoonD = save.BoonD + save.Exp
@@ -558,6 +577,11 @@ function expDownPress()
 		save.Vitmax = save.Vitmax - 4
 		save.Vitcur = save.Vitcur - 4
 		save.Skill = save.Skill - 1
+	end
+	save.Rungs[save.Exp] = save.Rung
+	if pcall( function () return save.Rungs[save.Exp - 1] end ) and save.Rungs[save.Exp - 1] then
+		save.Rung = save.Rungs[save.Exp - 1]
+	else
 		save.Rung = ""
 	end
 	save.BoonD = save.BoonD - save.Exp
