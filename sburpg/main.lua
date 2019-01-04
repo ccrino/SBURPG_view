@@ -482,16 +482,15 @@ function saveToFile()
 	if focus.vali == "Vitmax" or focus.vali == "Vitcur"
 		or focus.vali == "HRank"  or focus.vali == "Skill"
 		or focus.vali == "BoonD"  or focus.vali == "Exp" then
-			if tonumber(save[focus.vali]) then 
-				save[focus.vali] = tonumber( save[focus.vali] )
-				focus = nil
-			else 
-				save[focus.vali] = fbefore
-				focus = nil
-			end
-		else
+		if tonumber(save[focus.vali]) then 
+			save[focus.vali] = tonumber( save[focus.vali] )
+			focus = nil
+		else 
+			save[focus.vali] = fbefore
 			focus = nil
 		end
+	else
+		focus = nil
 	end
 	
 	if save.Rung and not ( save.Rung == "" ) then
