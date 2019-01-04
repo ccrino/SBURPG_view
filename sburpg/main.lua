@@ -199,6 +199,7 @@ function love.mousepressed(x,y,button,istouch)
 				end			
 				focus = shape
 				fbefore = save[shape.vali]
+				save[shape.vali] = tostring( save[shape.vali] )
 				fsi = #save[shape.vali]
 			end
 			break
@@ -228,8 +229,9 @@ function love.keypressed( key )
     elseif ( key == "return" or key == "kpenter" ) and focus then
 		if focus.vali == "Vitmax" or focus.vali == "Vitcur"
 		or focus.vali == "HRank"  or focus.vali == "Skill"
-		or focus.vali == "BoonD" then
+		or focus.vali == "BoonD"  or focus.vali == "Exp" then
 			if tonumber(save[focus.vali]) then 
+				save[focus.vali] = tonumber( save[focus.vali] )
 				focus = nil
 			else 
 				save[focus.vali] = fbefore
@@ -476,6 +478,22 @@ local c = nil
 end
 
 function saveToFile()
+	--force enter values
+	if focus.vali == "Vitmax" or focus.vali == "Vitcur"
+		or focus.vali == "HRank"  or focus.vali == "Skill"
+		or focus.vali == "BoonD"  or focus.vali == "Exp" then
+			if tonumber(save[focus.vali]) then 
+				save[focus.vali] = tonumber( save[focus.vali] )
+				focus = nil
+			else 
+				save[focus.vali] = fbefore
+				focus = nil
+			end
+		else
+			focus = nil
+		end
+	end
+	
 	if save.Rung and not ( save.Rung == "" ) then
 		if not save.Rungs then
 			save.Rungs = {}
