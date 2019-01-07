@@ -2,6 +2,7 @@ HC = require 'HC'
 local utf8 = require("utf8")
 
 Field = {col = nil, xt = 0, yt = 0, ft = nil, xv = 0, yv = 0, fv = nil, name = "", vali = "", c = nil, prs = "", pos = ""}
+Display = {col = nil, xt = 0, yt = 0, ft = nil, xv = 0, yv = 0, fv = nil, name = "", text = "", c = nil}
 Button = {col = nil, xt = 0, yt = 0, ft = nil, title = "", func = nil, c = nil}
 
 function love.load()
@@ -85,7 +86,7 @@ function love.load()
 	Fields.Captcha3		= Button:new(HC.rectangle(1085,393, 30,30), 1085,393, 0,0, lTitle, "", captcha3Press, standardColors)
 	Fields.Captcha4		= Button:new(HC.rectangle(1085,443, 30,30), 1085,443, 0,0, lTitle, "", captcha4Press, standardColors)
 	Fields.Captcha5		= Button:new(HC.rectangle(1085,493, 30,30), 1085,493, 0,0, lTitle, "", captcha5Press, standardColors)
-	
+	Fields.Active		= Display:new(HC.rectangle(650,36, 300,150), 650,36, 10,-29, lTitle, 0, 0, lPara, "MOVE1", "roll+KNOW\n 10+: learn, SOMETHING USEFUL.\n 7-9: learn, SOMETHING INTERESTING", standardColors)
 	
 	if save.Awake then
 		Fields.Awake.title = 'y'
@@ -147,11 +148,7 @@ function love.draw()
 
 	--color FIELDS if moused over
 	for i, field in pairs(Fields) do
-		if field.__index == Field then
-			field:drawField()
-		elseif field.__index == Button then
-			field:drawButton()
-		end
+		field:draw()
 	end
 
 	for i, f in pairs(Layers.back) do
@@ -193,7 +190,7 @@ function love.mousepressed(x,y,button,istouch)
 					shape:recolor( prospitColors )
 					Fields.Awake:recolor( prospitColors )
 				end
-			else
+			elseif shape.__index == Field then
 				if focus then
 					save[focus.vali] = fbefore
 				end			
@@ -375,6 +372,14 @@ function Field:new (collider, x, y, xt, yt, ft, xv, yv, fv, name, savename, colo
 	return o    
 end
 
+function Display:new (collider, x, y, xt, yt, ft, xv, yv, fv, name, text, colors)
+	local cx, cy = collider:center()
+	o = {col = collider, xt = xt + x - cx, yt = yt + y - cy, ft = ft, xv = xv + x - cx, yv = yv + y - cy, fv = fv, name = name, text = text, c = colors}
+	setmetatable(o, self)
+	self.__index = self
+	return o    
+end
+
 function Button:new (collider, x, y, xt, yt, ft, title, func, colors)
 	local cx, cy = collider:center()
 	o = {col = collider, xt = x + xt - cx, yt = y + yt - cy, ft = ft, title = title, func = func, c = colors}
@@ -427,7 +432,7 @@ function symbolPrint( s, x, y)
 	end
 end
 
-function Field:drawField()
+function Field:draw()
 	local c = nil
 	if focus == self then
 		c = self.c.focus
@@ -440,6 +445,21 @@ function Field:drawField()
 	local cx, cy = self.col:center()
 	Layers.text[1 + #Layers.text] = function () love.graphics.setColor(self.c.title); self.ft( self.name, cx + self.xt, cy + self.yt)() end
 	Layers.text[1 + #Layers.text] = function () love.graphics.setColor(self.c.value); self.fv( self.prs .. save[self.vali] .. self.pos, cx + self.xv, cy + self.yv)() end
+end
+
+function Display:draw()
+	local c = nil
+	if focus == self then
+		c = self.c.focus
+	elseif self.col:collidesWith(mouse) then
+		c = self.c.hover
+	else
+		c = self.c.field
+	end
+	Layers.fore[1 + #Layers.fore] = function () love.graphics.setColor(c); self.col:draw('fill') end
+	local cx, cy = self.col:center()
+	Layers.text[1 + #Layers.text] = function () love.graphics.setColor(self.c.title); self.ft( self.name, cx + self.xt, cy + self.yt)() end
+	Layers.text[1 + #Layers.text] = function () love.graphics.setColor(self.c.value); self.fv( self.text, cx + self.xv, cy + self.yv)() end
 end
 
 function Field:recolor( c )
@@ -460,7 +480,7 @@ end
 function Button:move( dx, dy )
 	self.col:move( dx, dy )
 end
-function Button:drawButton()
+function Button:draw()
 local c = nil
 	if focus == self then
 		c = self.c.focus
